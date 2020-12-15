@@ -13,6 +13,7 @@
     <script src="./libs/jquery-1.12.4.min.js"></script>
     <!-- 导入bootstrap的js文件 -->
     <script src="./libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="./libs/https.js"></script>
 </head>
 
 <body>
@@ -20,7 +21,7 @@
         <a href="#" class="logo"><img src="images/logo02.png" alt="logo"></a>
         <div class="user_info">
             <img src="images/2.jpg" alt="person">
-            <span>欢迎&nbsp;&nbsp;李思思</span>
+            <span>欢迎&nbsp;&nbsp;<i style="font-style: normal;">李思思</i> </span>
             <b>管理员</b>
         </div>
         <!-- 左侧导航栏 -->
@@ -54,5 +55,36 @@
 
         </div>
     </div>
+
+
+    <script>
+        $(function(){
+            $.ajax({
+            type:'get',
+            headers:{
+                Authorization : localStorage.getItem('zhanmei')
+            },
+            url:BigNew.user_info,
+            success:function(backData){
+                console.log(backData);
+                if(backData.code == 200){
+                    $('.user_info img').attr('src',backData.data.userPic)
+                    $('.user_info span i').text(backData.data.nickname)
+                    $('.user_center_link img').attr('src',backData.data.userPic)
+                }else{
+                    alert('请登陆')
+                }
+            }
+        })
+
+        $('.user_center_link .logout').on('click',function(e){
+            e.preventDefault()
+            localStorage.removeItem('zhanmei')
+            window.location.href = 'login.html'
+        })
+
+        })
+        
+    </script>
 </body>
 </html>

@@ -15,6 +15,7 @@
   <script src="./libs/jquery-1.12.4.min.js"></script>
   <!-- 引入bootstrap的js文件 -->
   <script src="./libs/bootstrap/js/bootstrap.min.js"></script>
+  <script src="./libs/https.js"></script>
 </head>
 
 <body>
@@ -38,6 +39,72 @@
     </div>
   </div>
 
+
+
+  <!-- bootstrap模态框 -->
+  <div class="modal fade" tabindex="-1" role="dialog" id="myModal">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+              aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title">友情提示</h4>
+        </div>
+        <div class="modal-body">
+          <p>账号密码不能为空&hellip;</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">确定</button>
+          <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
+        </div>
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </div><!-- /.modal -->
+
+
+  <script>
+    $(function () {
+      $('.input_sub').on('click', function (e) {
+        e.preventDefault()
+        let username = $('.input_txt').val().trim()
+        let password = $('.input_pass').val().trim()
+        if (username == '' || password == '') {
+          // alert('账号密码不能为空')
+          $('.modal-body p').text('账号密码不能为空')
+          $('#myModal').modal({
+            keyboard:true
+          })
+          return
+        }
+        $.ajax({
+          type: 'post',
+          url: BigNew.user_login,
+          data: {
+            username: username,
+            password: password,
+          },
+          success: function (backData) {
+            console.log(backData);
+            if (backData.code == 200) {
+              // alert('登录成功')
+              $('.modal-body p').text('登录成功')
+              $('#myModal').modal()
+              $('#myModal').on('hidden.bs.modal', function (e) {
+                // do something...
+                window.location.href = 'index.html'
+                localStorage.setItem('zhanmei',backData.token)
+              })
+            } else {
+              // alert('账号或者密码错误')
+              console.log(111);
+              $('.modal-body p').text('账号或者密码错误')
+              $('#myModal').modal()
+            }
+          }
+        })
+      })
+    })
+  </script>
 </body>
 
 </html>
