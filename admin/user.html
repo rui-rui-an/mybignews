@@ -44,7 +44,7 @@
                     <label for="inputPassword3" class="col-sm-2 control-label">用户图标：</label>
                     <div class="col-sm-10">
                         <img src="images/2.jpg" alt="" class="user_pic">
-                        <input style="display: block" name="userPic" type="file" id="exampleInputFile">
+                        <input style="display: none" name="userPic" type="file" id="exampleInputFile">
                         <!-- 给label标签的for属性赋值,值是input标签的id,那这样的话点击label就相当于点击了input -->
                         <br>
                         <label for="exampleInputFile">
@@ -71,6 +71,73 @@
 
     <script src="./libs/https.js"></script>
     <script>
+        $(function () {
+            // 一：一进到页面就展示用户的数据
+            $.ajax({
+                type: 'get',
+                url: BigNew.user_detail,
+                success: function (backData) {
+                    // console.log(backData);
+                    if (backData.code == 200) {
+                        $('.username').val(backData.data.username)
+                        $('.nickname').val(backData.data.nickname)
+                        $('.email').val(backData.data.email)
+                        $('.user_pic').val(backData.data.userPic)
+                        $('.password').val(backData.data.password)
+                    }
+                }
+            })
+
+            // 2:点击修改按钮修改用户的数据
+            $('.btn-edit').on('click', function (e) {
+                e.preventDefault()
+                let fd = new FormData($('form')[0])
+                // console.log(111);
+                $.ajax({
+                    type: 'post',
+                    url: BigNew.user_edit,
+                    data: fd,
+                    // 一定要记得formData传输需要的两个参数
+                    processData: false,
+                    contentType: false,
+                    success: function (backData) {
+                        // console.log(1111);
+                        console.log(backData);
+                        if (backData.code == 200) {
+                            alert('修改成功')
+                            // 修改成功之后需要重新修改父页面展示用户的信息
+                            // 所以我们需要重新发送ajax请求获得用户的信息来展示
+                            $.ajax({
+                                type: 'get',
+                                headers: {
+                                    Authorization: localStorage.getItem('zhanmei')
+                                },
+                                url: BigNew.user_info,
+                                success: function (backData) {
+                                    // console.log(backData);
+                                    if (backData.code == 200) {
+                                        // 在iframe子页面修改iframe父页面的值，需要在前面加上一个parent
+                                        parent.$('.user_info img').attr('src', backData.data.userPic)
+                                        parent.$('.user_info span i').text(backData.data.nickname)
+                                        parent.$('.user_center_link img').attr('src', backData.data.userPic)
+                                    } else {
+                                        alert('请登陆')
+                                    }
+                                }
+                            })
+                        }
+                    }
+                })
+            })
+
+            // 3.用户头像预览
+            $('#exampleInputFile').on('change',function(){
+                let files = this.files[0]
+                let url = URL.createObjectURL(files)
+                $('.user_pic').attr('src',url)
+            })
+
+        })
 
     </script>
 </body>
