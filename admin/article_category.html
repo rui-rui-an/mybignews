@@ -51,7 +51,175 @@
             </table>
         </div>
     </div>
-</body>
 
-    
+    <!-- bootstrap的穆太狂 -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel">New message</h4>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <input type="hidden" id="recipient-id" name="id">
+                        <div class="form-group">
+                            <label for="recipient-name" class="control-label">分类名称:</label>
+                            <input type="text" class="form-control" id="recipient-name" name="name">
+                        </div>
+                        <div class="form-group">
+                            <label for="message-text" class="control-label">分类别名:</label>
+                            <input class="form-control" id="message-text" name="slug"></input>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal" id="cancel">取消</button>
+                    <button type="button" class="btn btn-primary" id="addOrEdit">Send message</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+</body>
+<script id="articleTemp" type="text/html">
+        {{each data v}}
+        <tr>
+            <td>{{v.name}}</td>
+            <td>{{v.slug}}</td>
+            <td class="text-center">
+                <a href="javascript:void(0)" data-id="{{v.id}}" data-toggle="modal" data-target="#myModal" class=" btn btn-info btn-xs">编辑</a>
+                <a href="javascript:void(0)" data-id="{{v.id}}" class="btn btn-danger btn-xs">删除</a>
+            </td>
+        </tr>
+        {{/each}}
+    </script>
+<script src="./libs/https.js"></script>
+<script>
+    $(function () {
+        // 一：一进入页面就展示所有的文章类别
+        function update() {
+            $.ajax({
+                type: 'get',
+                url: BigNew.category_list,
+                success: function (backData) {
+                    // console.log(backData);
+                    if (backData.code == 200) {
+                        let res = template('articleTemp', backData)
+                        $('tbody').html(res)
+                    }
+                }
+            })
+        }
+        update()
+
+        // 二.点击新增按钮和编辑按钮弹出模态框
+
+        // 三.点击不同按钮弹出来的模态框里面的内容不同，
+        $('#myModal').on('show.bs.modal', function (e) {
+            // 判断触发模态框点击的元素是否为新增按钮还是编辑按钮
+            if (e.relatedTarget == $('#xinzengfenlei')[0]) {
+                $('#myModalLabel').text('新增分类')
+                $('#addOrEdit').text('新增').addClass('btn-success').removeClass('btn-primary')
+
+            } else {
+                $('#myModalLabel').text('编辑分类')
+                $('#addOrEdit').text('编辑').addClass('btn-primary').removeClass('btn-success')
+                // 1.点击编辑的时候，需要将文章分类放到模态框的输入框里面(这一步应该写在这里。，好拿数据)
+                $('#recipient-name').val($(e.relatedTarget).parent().prev().prev().text().trim())
+                $('#message-text').val($(e.relatedTarget).parent().prev().text().trim())
+                $('#recipient-id').val($(e.relatedTarget).attr('data-id'))
+            }
+        })
+
+
+        // 四：点击新增按钮或者编辑按钮完成新增或者编辑
+        $('#addOrEdit').on('click', function () {
+            // 同样的，也需要判断一下点击的这个按钮到底死新增还是编辑
+            if ($(this).text() == '新增') {
+                // 这里处理新增的逻辑
+                let name = $('#recipient-name').val().trim()
+                let slug = $('#message-text').val().trim()
+                $.ajax({
+                    type: 'post',
+                    url: BigNew.category_add,
+                    data: {
+                        name: name,
+                        slug: slug
+                    },
+                    success: function (backData) {
+                        // console.log(backData);
+                        if (backData.code == 201) {
+                            alert('新增成功')
+                            // c重新加载页面
+                            update()
+                            $('#recipient-name').val('')
+                            $('#message-text').val('')
+                            // 关闭模态框
+                            $('#myModal').modal('hide')
+                        }
+                    }
+                })
+            } else {
+                // 这里处理编辑的逻辑代码
+                // 1.点击编辑的时候，需要将文章分类放到模态框的输入框里面(这一步应该写在前面点击的时候，那时候好拿数据)
+
+                // 2.获取数据，发送请求，刷新页面
+                // 这里使用jq的序列化方法拿到form表单中的值
+                let data = $('form').serialize()
+                // 发送请求
+                $.ajax({
+                    type: 'post',
+                    url: BigNew.category_edit,
+                    data: data,
+                    success: function (backData) {
+                        // console.log(backData);
+                        if (backData.code == 200) {
+                            alert('修稿成功')
+                            update()
+                            $('#recipient-name').val('')
+                            $('#message-text').val('')
+                            // 关闭模态框
+                            $('#myModal').modal('hide')
+                        }
+                    }
+                })
+            }
+        })
+
+
+        // 五：点击删除按钮，删除文章类别，别切刷新页面(这里需要使用委托注册)
+        $('tbody').on('click', '.btn-danger', function () {
+            // 阻止a标签的默认跳转
+            // 1.获取自身带着的id
+            let id = $(this).attr('data-id')
+            $.ajax({
+                type: 'post',
+                url: BigNew.category_delete,
+                data: {
+                    id: id
+                },
+                success: function (backData) {
+                    // console.log(backData);
+                    if (backData.code == 204) {
+                        alert('删除成功')
+                        update()
+                    }
+                }
+            })
+        })
+
+
+        // 六，细节处理：点击取消的时候我们也需要将模态框的内容清空，否则下次打开内容还在
+        $('#myModal #cancel').on('click', function () {
+            $('#recipient-name').val('')
+            $('#message-text').val('')
+        })
+    })
+</script>
+
 </html>
