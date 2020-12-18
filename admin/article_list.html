@@ -11,6 +11,9 @@
     <link rel="stylesheet" href="./css/iconfont.css">
     <link rel="stylesheet" href="./css/main.css">
     <script src="./libs/jquery-1.12.4.min.js"></script>
+    <!-- 引入分页文件 -->
+    <script src="./libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="./libs/jquery.twbsPagination.js"></script>
     <!-- 引入模板引擎js文件 -->
     <script src="./libs/template-web.js"></script>
 </head>
@@ -69,9 +72,236 @@
                 </tbody>
             </table>
             <div class="row text-center">
+                <ul class="pagination" id="pagination"></ul>
+                <p>没有数据！</p>
             </div>
         </div>
     </div>
+    <script id="catecoryTemp" type="text/html">
+        <option value="">所有分类</option>
+        {{each data v}}
+            <option value="{{v.id}}">{{v.name}}</option>
+        {{/each}}
+    </script>
+
+    <script id="articalTemp" type="text/html">
+        {{each data.data v}}
+        <tr>
+            <td>{{v.title}}</td>
+            <td>{{v.author}}</td>
+            <td>{{v.category}}</td>
+            <td class="text-center">{{v.date}}</td>
+            <td class="text-center">{{v.state}}</td>
+            <td class="text-center">
+                <a href="article_edit.html" data-id="{{v.id}}" class="btn btn-default btn-xs">编辑</a>
+                <a href="javascript:void(0);" data-id="{{v.id}}" class="btn btn-danger btn-xs delete">删除</a>
+            </td>
+        </tr>
+        {{/each}}
+    </script>
+    <script src="./libs/https.js"></script>
+    <script>
+        $(function () {
+
+
+            // 1.一进入页面显示所有类别
+            $.ajax({
+                type: 'get',
+                url: BigNew.category_list,
+                success: function (backData) {
+                    // console.log(backData);
+                    if (backData.code == 200) {
+                        let res = template('catecoryTemp', backData)
+                        $('#selCategory').html(res)
+                    }
+                }
+            })
+
+            let mypage = 1
+            // 对下面的发送ajax请求做封装，减少代码冗余
+            function updata(page, callback) {
+                $.ajax({
+                    type: 'get',
+                    url: BigNew.article_query,
+                    data: {
+                        type: $('#selCategory').val(),
+                        state: $('#selStatus').val(),
+                        page: page,
+                        perpage: 3
+                    },
+                    success: function (backData) {
+                        // console.log(backData);
+                        let res = template('articalTemp', backData)
+                        $('tbody').html(res)
+                        // a.当前所在页的数据不为空，则调用
+                        if (backData.data.data.length != 0 && callback != null) {
+                            // 删除问题主要是page这边出错，已经删除完了，但是我还是用38页的id去接口请求37页的id，就报错了呀
+                            callback(backData)
+                            // console.log(mypage);
+                            $('#pagination').show().next('p').hide()
+                            // b.当前所在页为第一页并且没有数据那么就显示“没有数据！”
+                        } else if (backData.data.totalPage == 0 && backData.data.data.length == 0) {
+                            $('#pagination').hide().next('p').show()
+                            // c.当前所在页为最后一页并且没有数据请求上一页的数据并更新页码条
+                        }else if (backData.data.totalPage == mypage - 1 && backData.data.data.length == 0) {
+                            mypage -= 1
+                            // 最后一页删除完了，就更新上一页的数据
+                            updata(mypage, function (backData) {
+                                // 最后一页删除完了，就更新页码更新页码
+                                $('#pagination').twbsPagination('changeTotalPages', backData.data.totalPage, mypage)
+                            })
+                        }
+                    }
+                })
+            }
+
+
+
+
+            // 2.一进入页面展示所有的文章
+            updata(1, function (backData) {
+                // 利用返回的全部数据做分页
+                $('#pagination').twbsPagination({
+                    totalPages: backData.data.totalPage,
+                    visiblePages: 10,
+                    prev: '上一页',
+                    next: '下一页',
+                    first: '首页',
+                    last: '尾页',
+                    onPageClick: function (event, page) {
+                        // console.info(page + ' (from options)');
+                        // 点击页码需要重新发送ajax请求来更新文章
+                        mypage = page
+                        updata(page, null)
+                    }
+                })
+            })
+
+
+            // 3.点击筛选按钮展示筛选后的文章
+            $('#btnSearch').on('click', function (e) {
+                e.preventDefault()
+                updata(1, function (backData) {
+                    // 更新页码
+                    $('#pagination').twbsPagination('changeTotalPages', backData.data.totalPage, 1)
+                })
+
+            })
+
+
+            // 4.删除文章
+            $('tbody').on('click', '.delete', function () {
+                // console.log(111);
+                let id = $(this).attr('data-id')
+                $.ajax({
+                    type: 'post',
+                    url: BigNew.article_delete,
+                    data: {
+                        id: id
+                    },
+                    success: function (backData) {
+                        // console.log(backData);
+                        if (backData.code == 204) {
+                            alert('删除成功')
+                            // 由于删除之后可能会影响页码，所以要更新页码
+                            updata(mypage, function (backData) {
+                                $('#pagination').twbsPagination('changeTotalPages', backData.data.totalPage, mypage)
+                            })
+                        }
+                    }
+                })
+            })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            // ----------------------------------------------------------封装前代码--------------------------------------------------------
+            // // 2.一进入页面展示所有的文章
+            // $.ajax({
+            //     type: 'get',
+            //     url: BigNew.article_query,
+            //     data: {
+            //         type: $('#selCategory').val(),
+            //         state: $('#selStatus').val(),
+            //         page: 1,
+            //         perpage: 3
+            //     },
+            //     success: function (backData) {
+            //         console.log(backData);
+            //         let res = template('articalTemp', backData)
+            //         $('tbody').html(res)
+            //         // 利用返回的全部数据做分页
+            //         $('#pagination').twbsPagination({
+            //             totalPages: backData.data.totalPage,
+            //             visiblePages: 10,
+            //             prev: '上一页',
+            //             next: '下一页',
+            //             first: '首页',
+            //             last: '尾页',
+            //             onPageClick: function (event, page) {
+            //                 // console.info(page + ' (from options)');
+            //                 // 点击页码需要重新发送ajax请求来更新文章
+            //                 $.ajax({
+            //                     type: 'get',
+            //                     url: BigNew.article_query,
+            //                     data: {
+            //                         type: $('#selCategory').val(),
+            //                         state: $('#selStatus').val(),
+            //                         page: page,
+            //                         perpage: 3
+            //                     },
+            //                     success: function (backData) {
+            //                         // console.log(backData);
+            //                         let res = template('articalTemp', backData)
+            //                         $('tbody').html(res)
+            //                     }
+            //                 })
+            //             }
+            //         })
+            //     }
+            // })
+
+
+            // // 3.点击筛选按钮展示筛选后的文章
+            // $('#btnSearch').on('click', function (e) {
+            //     e.preventDefault()
+            //     $.ajax({
+            //         type: 'get',
+            //         url: BigNew.article_query,
+            //         data: {
+            //             type: $('#selCategory').val(),
+            //             state: $('#selStatus').val(),
+            //             page: 1,
+            //             perpage: 3
+            //         },
+            //         success: function (backData) {
+            //             // console.log(backData);
+            //             let res = template('articalTemp', backData)
+            //             $('tbody').html(res)
+            //             // 这里需要更新页码,点击筛选后更新页码默认在第一页
+            //             $('#pagination').twbsPagination('changeTotalPages',backData.data.totalPage,1)
+            //         }
+            //     })
+
+            // })
+
+
+        })
+
+
+    </script>
 </body>
 
 </html>
