@@ -10,10 +10,16 @@
     <link rel="stylesheet" href="css/reset.css">
     <link rel="stylesheet" href="css/iconfont.css">
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="./css/datecss/jeDate-test.css">
+    <link rel="stylesheet" href="./css/datecss/jedate.css">
     <!-- jq -->
     <script src="./libs/jquery-1.12.4.min.js"></script>
     <!-- 模板引擎 -->
     <script src="./libs/template-web.js"></script>
+    <!-- 日期插件 -->
+    <script src="./js/datejs/jedate.js"></script>
+    <!-- 富文本编辑器插件 -->
+    <script src="./js/wangEditor.min.js"></script>
 </head>
 
 <body>
@@ -50,12 +56,17 @@
                 </div>
                 <div class="form-group">
                     <label class="col-sm-2 control-label">发布时间：</label>
-                    <div class="col-sm-4">
+                    <div class="jeinpbox col-sm-4">
+                        <input type="text" class="jeinput" name="date" id="testico" placeholder="YYYY-MM-DD">
+                        <div class="icons jebtns"
+                            onclick="jeDate('#testico',{zIndex: 20999,isinitVal:true, trigger:false,format: 'YYYY-MM-DD'})">
+                        </div>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="inputEmail3" class="col-sm-2 control-label">文章内容：</label>
-                    <div class="col-sm-10">
+                    <div id="div1" class="col-sm-8">
+                        <p>请输入内容</p>
                     </div>
                 </div>
                 <div class="form-group">
@@ -67,6 +78,128 @@
             </form>
         </div>
     </div>
+
+    <script src="./libs/https.js"></script>
+    <!-- 1.一进入页面显示所有分类 -->
+    <script id="catecoryTemp" type="text/html">
+        {{each data v}}
+            <option value="{{v.id}}">{{v.name}}</option>
+        {{/each}}
+    </script>
+    <script>
+        $(function () {
+            // 1.一进入页面显示所有类别
+            $.ajax({
+                type: 'get',
+                url: BigNew.category_list,
+                success: function (backData) {
+                    // console.log(backData);
+                    if (backData.code == 200) {
+                        let res = template('catecoryTemp', backData)
+                        $('.category').html(res)
+                    }
+                }
+            })
+
+            // 2.头像预览
+            $('#inputCover').on('change', function () {
+                let files = this.files[0]
+                let url1 = URL.createObjectURL(files)
+                $('.article_cover').attr('src', url1)
+            })
+
+
+            // 3.日期插件的使用
+            jeDate("#testico", {
+                format: "YYYY-MM-DD",
+                isinitVal: true,
+                zIndex: 20999
+            })
+
+            //4.富文本的使用
+            const E = window.wangEditor
+            const editor = new E('#div1')
+            // 或者 const editor = new E( document.getElementById('div1') )
+            editor.create()
+
+            let id = window.location.search.split('=')[1]
+            // console.log(id);
+            // 5.一进来就发送请求显示对应的数据(这里要延迟执行以下，因为ajax代码是异步的，所以不知道是全部类别先返回还是这个先返回
+            setTimeout(function () {
+                $.ajax({
+                    type: 'get',
+                    url: BigNew.article_search,
+                    data: {
+                        id: id
+                    },
+                    success: function (backData) {
+                        // console.log(backData);
+                        $('.title').val(backData.data.title)
+                        $('.article_cover').attr('src', backData.data.cover)
+                        $('.category').val(backData.data.categoryId)
+                        $('#testico').val(backData.data.date)
+                        editor.txt.html(backData.data.content)
+                    }
+                })
+            }, 80)
+
+
+            // 6.点击修改修改为已发布
+            $('.btn-edit').on('click', function (e) {
+                e.preventDefault()
+                let fd = new FormData($('form')[0])
+                fd.append('content', editor.txt.html())
+                fd.append('id', id)
+                fd.append('state', '已发布')
+                $.ajax({
+                    type: 'post',
+                    url: BigNew.article_edit,
+                    processData: false,
+                    contentType: false,
+                    data: fd,
+                    success: function (backData) {
+                        // console.log(backData);
+                        if (backData.code == 200) {
+                            alert('修改成功')
+                            window.location.href = 'article_list.html'
+                            parent.$('ul.level02 li:eq(0)').addClass('active').siblings().removeClass('active')
+                        }
+                    }
+                })
+            })
+
+            // 7.文章草稿发布
+            $('.btn-draft').on('click', function (e) {
+                e.preventDefault()
+                let fd = new FormData($('form')[0])
+                fd.append('id', id)
+                fd.append('content', editor.txt.html())
+                fd.append('state', '草稿')
+                $.ajax({
+                    type: 'post',
+                    url: BigNew.article_edit,
+                    processData: false,
+                    contentType: false,
+                    data: fd,
+                    success: function (backData) {
+                        // console.log(backData);
+                        if (backData.code == 200) {
+                            alert('修改草稿成功')
+                            window.location.href = 'article_list.html'
+                            parent.$('ul.level02 li:eq(0)').addClass('active').siblings().removeClass('active')
+                        }
+                    }
+                })
+            })
+
+
+
+
+
+
+
+        })
+    </script>
 </body>
 
 </html>
