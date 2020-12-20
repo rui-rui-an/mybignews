@@ -93,7 +93,7 @@
             <td class="text-center">{{v.date}}</td>
             <td class="text-center">{{v.state}}</td>
             <td class="text-center">
-                <a href="article_edit.html" data-id="{{v.id}}" class="btn btn-default btn-xs">编辑</a>
+                <a href="#" data-id="{{v.id}}" class="btn btn-default btn-xs">编辑</a>
                 <a href="javascript:void(0);" data-id="{{v.id}}" class="btn btn-danger btn-xs delete">删除</a>
             </td>
         </tr>
@@ -213,9 +213,15 @@
             })
 
             // 5.发表文章的点击跳转
+            $('#release_btn').on('click',function(){
+                parent.$('ul.level02 li:eq(1)').addClass('active').siblings().removeClass('active')
+            })
 
-
-
+            // 6.点击编辑按钮跳转编辑页面并且将id带过去
+            $('tbody').on('click','.btn-default',function(){
+                let myId = $(this).attr('data-id')
+                window.location.href = 'article_edit.html?id=' + myId
+            })
 
 
 
