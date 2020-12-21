@@ -224,9 +224,99 @@
         </div>
         <p>CopyRight © 2019 深圳大事件信息技术股份有限公司 All Rights Reserved</p>
         <p>电话：0755-****888 粤ICP备*******8号</p>
+
     </div>
+
+    <script id="lastestTemp" type="text/html">
+        {{each data.data v}}
+        <div class="common_news_list">
+            <a href="article.html?articleId={{v.id}}" class="list_pic"><img src="{{v.cover}}" alt=""></a>
+            <h4><a href="article.html?articleId={{v.id}}">{{v.title}} </a></h4>
+            <p>{{@ v.intro}}
+            </p>
+            <div class="new_info">
+                <span>标签：{{v.category}}&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;<i class="fa fa-eye"></i>&nbsp;阅读( {{v.read}}
+                    )&nbsp;&nbsp;&nbsp;<i class="fa fa-commenting"></i>&nbsp;评论( {{v.comments}} )</span>
+                <b>发布于 {{v.state}}</b>
+            </div>
+        </div>
+        {{/each}}
+    </script>
+
     <!-- 导包template -->
+    <script src="./js/http.js"></script>
     <script src="./js/template-web.js"></script>
+    <script>
+        $(function () {
+            let value = window.location.search
+            let valuekey = value.split('=')[0]
+            let valuewords = value.split('=')[1]
+            // console.log(valuekey);
+
+            // 对三种进来列表页的情况进行分类统计
+            if (valuekey == '?categoryId') {
+                $.ajax({
+                    type: 'get',
+                    url: BigNew.search,
+                    data: {
+                        type: valuewords
+                    },
+                    success: function (backData) {
+                        // console.log(backData);
+                        if (backData.code == 200) {
+                            if (backData.data.data.length > 0) {
+                                let res = template('lastestTemp', backData)
+                                $('.left_con').html(`<div class="list_title"><h3>${backData.data.data[0].category}</h3></div>` + res)
+                            } else {
+                                $('.left_con').html(`<div class="list_title"><h3>没有数据</h3></div>`)
+                            }
+
+                        }
+                    }
+                })
+
+            } else if (valuekey == '?search') {
+                valuewords = decodeURI(valuewords)
+                $.ajax({
+                    type: 'get',
+                    url: BigNew.search,
+                    data: {
+                        key: valuewords
+                    },
+                    success: function (backData) {
+                        // console.log(backData);
+                        if (backData.code == 200) {
+                            if (backData.data.data.length > 0) {
+                                let res = template('lastestTemp', backData)
+                                $('.left_con').html(`<div class="list_title"><h3>搜索关键词：${valuewords}</h3></div>` + res)
+                            } else {
+                                $('.left_con').html(`<div class="list_title"><h3>没有数据</h3></div>`)
+                            }
+
+                        }
+                    }
+                })
+            } else {
+                $.ajax({
+                    type: 'get',
+                    url: BigNew.search,
+                    success: function (backData) {
+                        // console.log(backData);
+                        if (backData.code == 200) {
+                            if (backData.data.data.length > 0) {
+                                // console.log(backData);
+                                let res = template('lastestTemp', backData)
+                                $('.left_con').html(`<div class="list_title"><h3>资讯列表</h3></div>` + res)
+                            } else {
+                                $('.left_con').html(`<div class="list_title"><h3>没有数据</h3></div>`)
+                            }
+
+                        }
+                    }
+                })
+            }
+        })
+    </script>
 </body>
 
 </html>

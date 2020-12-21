@@ -207,8 +207,115 @@
 
     <!-- 引入模板引擎js文件 -->
     <script src="./js/template-web.js"></script>
-    <script src="./js/jquery-1.12.4.min.js"></script>
+    <!-- 文章详细发表模板 -->
+    <script id="detailTemp" type="text/html">
+        {{author}} 发布于 {{date}}&nbsp;&nbsp;&nbsp;分类: {{category}}&nbsp;&nbsp;&nbsp;阅读:
+                ({{read}})&nbsp;&nbsp;&nbsp;评论: ({{comments}})
+    </script>
 
+    <!-- 文章评论模板 -->
+    <script id="commentsTemp" type="text/html">
+        {{each data v}}
+        <div class="comment_detail_list">
+            <div class="person_pic fl">{{v.author.substr(0,1)}}</div>
+            <div class="name_time fl"><b>{{v.author}}</b><span>{{v.date}}</span></div>
+            <div class="comment_text fl">
+                {{v.content}}
+            </div>
+        </div>
+        {{/each}}
+    </script>
+
+    <script src="./js/http.js"></script>
+    <script src="./js/jquery-1.12.4.min.js"></script>
+    <script>
+        $(function () {
+            let articleId = window.location.search.split('=')[1]
+            // console.log(articalId);
+            // console.log(articalId);
+            if (articleId == 'undefined') {
+                window.location.href = 'index.html'
+            }
+            $.ajax({
+                type: 'get',
+                url: BigNew.article,
+                data: {
+                    id: articleId
+                },
+                success: function (backData) {
+                    // console.log(backData);
+                    // 对返回的数据替换给html中的数据
+                    if (backData.code == 200) {
+                        $('.breadcrumb a:eq(1)').text(backData.data.category)
+                        $('.article_title').text(backData.data.title)
+                        $('.article_con').html(backData.data.content)
+                        let res = template('detailTemp', backData.data)
+                        $('.article_info').html(res)
+
+                        // 对上一篇和下一篇进行处理
+                        if (backData.data.next == null && backData.data.prev == null) {
+                            $('.article_links a:eq(1)').text('没有了')
+                            $('.article_links a:eq(0)').text('没有了')
+                        } else if (backData.data.next == null) {
+                            $('.article_links a:eq(1)').text('没有了')
+                            $('.article_links a:eq(0)').text(backData.data.prev.title)
+                            $('.article_links a:eq(0)').attr('href', 'article.html?articalId=' + backData.data.prev.id)
+                        } else if (backData.data.prev == null) {
+                            $('.article_links a:eq(0)').text('没有了')
+                            $('.article_links a:eq(1)').text(backData.data.next.title)
+                            $('.article_links a:eq(1)').attr('href', 'article.html?articleId=' + backData.data.next.id)
+                        } else {
+                            $('.article_links a:eq(0)').text(backData.data.prev.title)
+                            $('.article_links a:eq(0)').attr('href', 'article.html?articleId=' + backData.data.prev.id)
+                            $('.article_links a:eq(1)').text(backData.data.next.title)
+                            $('.article_links a:eq(1)').attr('href', 'article.html?articleId=' + backData.data.next.id)
+                        }
+                    }
+                }
+            })
+
+
+            // 二：显示评论列表页
+            $.ajax({
+                type:'get',
+                url:BigNew.get_comment,
+                data:{
+                    articleId : articleId
+                },
+                success:function(backData){
+                    // console.log(backData);
+                    let res = template('commentsTemp',backData)
+                    $('.comment_list_con').html(res)
+                }
+            })
+
+
+            // 三： 发表评论
+            $('.comment_sub').on('click',function(e){
+                e.preventDefault()
+                let username = $('.comment_name').val()
+                let content = $('.comment_input').val()
+                $.ajax({
+                    type:'post',
+                    url: BigNew.post_comment ,
+                    data:{
+                        author: username,
+                        content : content,
+                        articleId : articleId
+                    },
+                    success:function(backData){
+                        // console.log(backData);
+                        if(backData.code == 201){
+                            alert('发表成功，评论审核中')
+                            $('.comment_name').val('')
+                            $('.comment_input').val('')
+                        }
+                    }
+                })
+            })
+
+        })
+    </script>
 </body>
 
 </html>
